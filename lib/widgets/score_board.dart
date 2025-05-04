@@ -12,6 +12,7 @@ class ScoreBoard extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'Score: ${gameState.score}',
@@ -19,20 +20,39 @@ class ScoreBoard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (gameState.isGameOver) ...[
-                const Text('Game Over!'),
+                const Text(
+                  'Game Over!',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: () => _showNameDialog(context),
                   child: const Text('Save Score'),
                 ),
+                const SizedBox(height: 16),
               ],
-              const SizedBox(height: 16),
-              const Text('High Scores:'),
+              const Text(
+                'High Scores',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
-              ...gameState.highScores.map((score) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Text('${score.name}: ${score.score}'),
-                  )),
+              if (gameState.highScores.isEmpty)
+                const Text('No high scores yet!')
+              else
+                ...gameState.highScores.map((score) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        '${score.name}: ${score.score}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    )),
             ],
           ),
         );
@@ -51,8 +71,16 @@ class ScoreBoard extends StatelessWidget {
           controller: controller,
           decoration: const InputDecoration(
             hintText: 'Enter your name',
+            border: OutlineInputBorder(),
           ),
           autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          onSubmitted: (value) {
+            if (value.isNotEmpty) {
+              context.read<GameState>().saveHighScore(value);
+              Navigator.of(context).pop();
+            }
+          },
         ),
         actions: [
           TextButton(

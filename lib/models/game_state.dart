@@ -24,17 +24,8 @@ class HighScore {
 
   HighScore(this.name, this.score);
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'score': score,
-      };
-
-  factory HighScore.fromJson(Map<String, dynamic> json) {
-    return HighScore(
-      json['name'] as String,
-      json['score'] as int,
-    );
-  }
+  @override
+  String toString() => '$name: $score';
 }
 
 class GameState extends ChangeNotifier {
@@ -148,35 +139,51 @@ class GameState extends ChangeNotifier {
   }
 
   Future<void> loadHighScores() async {
-    final prefs = await SharedPreferences.getInstance();
-    final scoresJson = prefs.getStringList(highScoresKey) ?? [];
-    highScores = scoresJson
-        .map((json) => HighScore.fromJson(Map<String, dynamic>.from(
-            Map.fromEntries(json.split(',').map((entry) {
-              final parts = entry.split(':');
-              return MapEntry(
-                  parts[0].replaceAll('{', '').trim(),
-                  parts[1].replaceAll('}', '').trim());
-            })))))
-        .toList();
-    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final scoresJson = prefs.getStringList(highScoresKey) ?? [];
+      print('Loading high scores: $scoresJson');
+      
+      highScores = scoresJson.map((scoreStr) {
+        final parts = scoreStr.split(':');
+        if (parts.length == 2) {
+          return HighScore(
+            parts[0],
+            int.parse(parts[1]),
+          );
+        }
+        return null;
+      }).whereType<HighScore>().toList();
+      
+      print('Loaded high scores: ${highScores.map((s) => '${s.name}: ${s.score}').join(', ')}');
+      notifyListeners();
+    } catch (e) {
+      print('Error loading high scores: $e');
+      highScores = [];
+      notifyListeners();
+    }
   }
 
   Future<void> saveHighScore(String playerName) async {
-    final newScore = HighScore(playerName, score);
-    highScores.add(newScore);
-    highScores.sort((a, b) => b.score.compareTo(a.score));
-    if (highScores.length > 5) {
-      highScores = highScores.sublist(0, 5);
-    }
+    try {
+      final newScore = HighScore(playerName, score);
+      highScores.add(newScore);
+      highScores.sort((a, b) => b.score.compareTo(a.score));
+      if (highScores.length > 5) {
+        highScores = highScores.sublist(0, 5);
+      }
 
-    final prefs = await SharedPreferences.getInstance();
-    final scoresJson = highScores
-        .map((score) =>
-            '{name:${score.name},score:${score.score}}')
-        .toList();
-    await prefs.setStringList(highScoresKey, scoresJson);
-    notifyListeners();
+      final prefs = await SharedPreferences.getInstance();
+      final scoresJson = highScores
+          .map((score) => '${score.name}:${score.score}')
+          .toList();
+      
+      print('Saving high scores: $scoresJson');
+      await prefs.setStringList(highScoresKey, scoresJson);
+      notifyListeners();
+    } catch (e) {
+      print('Error saving high score: $e');
+    }
   }
 }
 
